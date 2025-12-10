@@ -102,17 +102,19 @@ def send_message():
         
         msgs = [{"role": m["role"], "content": m["content"]} for m in session["messages"][-10:]]
         
-        response = client.messages.create(
+        api_response = client.messages.create(
             model="claude-sonnet-4-5-20250929",
             max_tokens=100,
             temperature=0.7,
             system=CHARACTERS[session["character"]]["system_prompt"],
             messages=msgs
-        ).content[0].text
+        )
         
-        session["messages"].append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+        response_text = api_response.content[0].text if api_response.content else "I'm having trouble responding. Could you rephrase that?"
         
-        return jsonify({"response": response})
+        session["messages"].append({"role": "assistant", "content": response_text, "timestamp": datetime.now().isoformat()})
+        
+        return jsonify({"response": response_text})
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"error": str(e)}), 500
