@@ -21,7 +21,7 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 http_client = httpx.Client(verify=False)
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, http_client=http_client)
 
-VALID_ACCESS_CODES = os.getenv('ACCESS_CODES', 'TEST123,STUDENT2024,DESIGN2024').split(',')
+VALID_ACCESS_CODES = os.getenv('ACCESS_CODES', 'STUDENT2024,DESIGN2024').split(',')
 
 # Create sessions directory for persistence
 SESSIONS_DIR = '/tmp/sessions'
