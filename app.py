@@ -1,6 +1,6 @@
 # EMPATHY INTERVIEW SIMULATOR - WITH PERSISTENCE
 # Students download files at end of interview
-# doo bee doo ba
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
@@ -47,8 +47,8 @@ def load_session(session_id):
 CHARACTERS = {
     "jamie": {
         "name": "Jamie Rodriguez", "age": 28, "role": "Fitness Instructor",
-        "avatar": "", "letter": "J", "location": "Brunswick, Melbourne",
-        "system_prompt": """You are Jamie Rodriguez, a 28-year-old fitness instructor in Brunswick, Melbourne. You teach group fitness classes at three different gyms and travel between them by tram and bus. A design student is interviewing you about your daily life.
+        "avatar": "", "letter": "J", "location": "Narre Warren, Melbourne",
+        "system_prompt": """You are Jamie Rodriguez, a 28-year-old fitness instructor in Narre Warren, Melbourne. You teach group fitness classes at three different gyms and travel between them by tram and bus. A design student is interviewing you about your daily life.
 
 YOUR PROBLEMS (you have many — share whichever ones are relevant to what they ask about):
 - You carry kettlebells, resistance bands, yoga mats, a Bluetooth speaker, foam rollers, and a skipping rope between gyms in one big duffel bag and a backpack
@@ -77,8 +77,8 @@ HOW TO RESPOND:
     },
     "marcus": {
         "name": "Marcus Chen", "age": 45, "role": "Food Truck Owner",
-        "avatar": "", "letter": "M", "location": "Footscray, Melbourne",
-        "system_prompt": """You are Marcus Chen, a 45-year-old food truck owner in Footscray, Melbourne. You run a popular Asian fusion food truck. A design student is interviewing you about your daily life.
+        "avatar": "", "letter": "M", "location": "Dandenong, Melbourne",
+        "system_prompt": """You are Marcus Chen, a 45-year-old food truck owner in Dandenong, Melbourne. You run a popular Asian fusion food truck. A design student is interviewing you about your daily life.
 
 YOUR PROBLEMS (you have many — share whichever ones are relevant to what they ask about):
 - Your prep bench inside the truck is tiny — about 60cm x 40cm of usable workspace
@@ -86,7 +86,7 @@ YOUR PROBLEMS (you have many — share whichever ones are relevant to what they 
 - Sauce bottles leak during transit and make everything in the fridge sticky
 - The fridge has flat metal shelves with no lips, dividers, or anything to hold containers in place
 - Your containers are all different sizes from various takeaway suppliers — they don't stack together properly
-- The road to your usual Footscray spot has speed bumps and potholes that make everything bounce around in the truck
+- The road to your usual Dandenong spot has speed bumps and potholes that make everything bounce around in the truck
 - You spend 20-30 minutes every morning cleaning up spills and reorganising the fridge before you can start cooking
 - Your dad's handwritten recipe cards sit on the bench and keep getting splashed with oil and sauce — some are barely readable now
 - During lunch rush you can only stage one order at a time because there's no space — customers wait ages
@@ -107,8 +107,8 @@ HOW TO RESPOND:
     },
     "priya": {
         "name": "Priya Sharma", "age": 34, "role": "Kindergarten Teacher",
-        "avatar": "", "letter": "P", "location": "Richmond, Melbourne",
-        "system_prompt": """You are Priya Sharma, a 34-year-old kindergarten teacher in Richmond, Melbourne. You teach a class of 22 four-and-five-year-olds. A design student is interviewing you about your daily life.
+        "avatar": "", "letter": "P", "location": "Berwick, Melbourne",
+        "system_prompt": """You are Priya Sharma, a 34-year-old kindergarten teacher in Berwick, Melbourne. You teach a class of 22 four-and-five-year-olds. A design student is interviewing you about your daily life.
 
 YOUR PROBLEMS (you have many — share whichever ones are relevant to what they ask about):
 - 22 kids' belongings look nearly identical — same navy jumpers, similar hats, same-brand water bottles and lunch boxes
@@ -138,8 +138,8 @@ HOW TO RESPOND:
     },
     "tom": {
         "name": "Tom Williams", "age": 52, "role": "Handyman",
-        "avatar": "", "letter": "T", "location": "Coburg, Melbourne",
-        "system_prompt": """You are Tom Williams, a 52-year-old handyman in Coburg, Melbourne. You do maintenance and repairs for property managers and landlords across 8-10 different properties each week. A design student is interviewing you about your daily life.
+        "avatar": "", "letter": "T", "location": "Cranbourne, Melbourne",
+        "system_prompt": """You are Tom Williams, a 52-year-old handyman in Cranbourne, Melbourne. You do maintenance and repairs for property managers and landlords across 8-10 different properties each week. A design student is interviewing you about your daily life.
 
 YOUR PROBLEMS (you have many — share whichever ones are relevant to what they ask about):
 - You constantly forget which tools you've left at which property — you work across 8-10 places each week
@@ -169,8 +169,8 @@ HOW TO RESPOND:
     },
     "sarah": {
         "name": "Sarah Mitchell", "age": 23, "role": "University Student",
-        "avatar": "", "letter": "S", "location": "Carlton, Melbourne",
-        "system_prompt": """You are Sarah Mitchell, a 23-year-old university student living in a share house in Carlton, Melbourne with 4 other people. You study Communications at Melbourne Uni. A design student is interviewing you about your daily life.
+        "avatar": "", "letter": "S", "location": "Pakenham, Melbourne",
+        "system_prompt": """You are Sarah Mitchell, a 23-year-old university student living in a share house in Pakenham, Melbourne with 4 other people. You study Communications at Melbourne Uni. A design student is interviewing you about your daily life.
 
 YOUR PROBLEMS (you have many — share whichever ones are relevant to what they ask about):
 - You share one fridge with 4 other housemates and your food constantly gets pushed to the back and goes bad
@@ -782,17 +782,57 @@ def complete_session():
             return jsonify({"error": "Session not found"}), 404
             
         user_msgs = [m["content"] for m in session["messages"] if m["role"] == "user"]
+        assistant_msgs = [m["content"] for m in session["messages"] if m["role"] == "assistant"]
         
-        score = 40
-        for msg in user_msgs:
-            ml = msg.lower()
-            if '?' in msg: score += 4
-            if any(w in ml for w in ['how', 'what', 'why', 'tell me']): score += 3
-            if len(msg) > 40: score += 2
-            if any(w in ml for w in ['feel', 'challenge', 'struggle']): score += 3
-            if any(p in ml for p in ['tell me more', 'what else']): score += 4
+        # Build conversation transcript for Claude to evaluate
+        char = CHARACTERS[session["character"]]
+        transcript = ""
+        msg_list = session["messages"]
+        for m in msg_list:
+            speaker = "Student" if m["role"] == "user" else char["name"]
+            transcript += f"{speaker}: {m['content']}\n"
         
-        score = max(20, min(100, score))
+        try:
+            eval_prompt = f"""You are assessing a design student's empathy interview skills. They interviewed {char['name']}, a {char['role']} from {char['location']}, to understand their daily problems — with the goal of eventually designing a physical product to help them.
+
+Here is the full conversation transcript:
+{transcript}
+
+Score the student out of 100 based on these design thinking empathy criteria:
+
+1. OPEN-ENDED QUESTIONS (0-20): Did they ask how/what/why questions that let the person talk freely? Or did they ask closed yes/no questions?
+
+2. FOLLOW-UP & DEPTH (0-25): Did they dig deeper into answers? Did they ask "why" behind the first answer? Did they follow threads rather than jumping between unrelated topics?
+
+3. UNDERSTANDING FEELINGS & IMPACT (0-20): Did they explore how problems affect the person emotionally and practically? Did they ask about frustrations, workarounds, and what matters most?
+
+4. RELEVANCE & FOCUS (0-15): Were all questions relevant to understanding this person's life and problems? Deduct heavily for off-topic, joking, or nonsensical questions.
+
+5. DISCOVERING SPECIFIC PROBLEMS (0-20): Based on the conversation, how many concrete, specific problems did the student manage to uncover? More specific details = higher score.
+
+A score of 80+ should only be given for truly excellent empathetic interviewing — consistent open-ended questions, meaningful follow-ups, emotional exploration, and uncovering multiple specific problems.
+
+A score of 50-60 is average — some good questions mixed with shallow ones.
+
+A score below 40 means the student mostly asked yes/no questions, didn't follow up, or asked irrelevant things.
+
+Respond with ONLY a number between 10 and 100. Nothing else."""
+
+            eval_response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=10,
+                temperature=0,
+                messages=[{"role": "user", "content": eval_prompt}]
+            ).content[0].text.strip()
+            
+            # Extract the number
+            score = int(''.join(c for c in eval_response if c.isdigit())[:3])
+            score = max(10, min(100, score))
+        except Exception as e:
+            print(f"Claude scoring failed, using fallback: {e}")
+            # Basic fallback if API fails
+            score = 40 + len([m for m in user_msgs if '?' in m]) * 3
+            score = max(10, min(100, score))
         session["empathy_score"] = score
         session["completed_at"] = datetime.now().isoformat()
         save_session(session_id, session)
