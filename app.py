@@ -475,7 +475,7 @@ input[type="text"]:focus,select:focus{
             <option value="">Select your class</option>
             <option value="08DM">08 Design Mechanics</option>
             <option value="07DM">07 Design and Materials</option>
-            <option value="WORKSHOP">Workshop Session</option>
+            <option value="09IPS">09 Innovation and Problem Solivng</option>
         </select>
     </div>
     <div class="input-group">
